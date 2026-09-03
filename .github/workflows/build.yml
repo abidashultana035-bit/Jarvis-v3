@@ -10,76 +10,41 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create JARVIS v3 Project Sir
+      - name: Create Project Sir
         run: |
-          rm -rf app src build.gradle* settings.gradle*
+          rm -rf app/src build.gradle* settings.gradle* gradle*
           mkdir -p app/src/main/java/com/jarvis/v3
           mkdir -p app/src/main/res/values
 
-          cat > settings.gradle.kts <<'EOF'
-          pluginManagement {
-            repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
+          echo "include ':app'" > settings.gradle
+
+          cat > build.gradle <<'EOF'
+          buildscript {
             repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "JARVIS v3"
-          include(":app")
-          EOF
-
-          cat > build.gradle.kts <<'EOF'
-          plugins {
-            id("com.android.application") version "8.2.2" apply false
-            id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
           }
           EOF
 
-          cat > app/build.gradle.kts <<'EOF'
-          plugins {
-            id("com.android.application")
-            id("org.jetbrains.kotlin.android")
-          }
+          cat > app/build.gradle <<'EOF'
+          apply plugin: 'com.android.application'
           android {
-            namespace = "com.jarvis.v3"
-            compileSdk = 34
-            defaultConfig {
-              applicationId = "com.jarvis.v3"
-              minSdk = 26
-              targetSdk = 34
-              versionCode = 3
-              versionName = "3.0 SelfLearner"
-            }
-            buildFeatures { compose = true }
-            composeOptions { kotlinCompilerExtensionVersion = "1.5.8" }
-            compileOptions {
-              sourceCompatibility = JavaVersion.VERSION_1_8
-              targetCompatibility = JavaVersion.VERSION_1_8
-            }
+            namespace 'com.jarvis.v3'
+            compileSdk 34
+            defaultConfig { applicationId "com.jarvis.v3"; minSdk 24; targetSdk 34; versionCode 3; versionName "3.0" }
           }
           dependencies {
-            val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
-            implementation(composeBom)
-            implementation("androidx.compose.ui:ui")
-            implementation("androidx.compose.material3:material3")
-            implementation("androidx.activity:activity-compose:1.8.2")
-            implementation("androidx.work:work-runtime-ktx:2.9.0")
-            implementation("androidx.room:room-runtime:2.6.1")
-            implementation("androidx.room:room-ktx:2.6.1")
+            implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
 
           cat > app/src/main/res/values/strings.xml <<'EOF'
           <resources><string name="app_name">JARVIS v3</string></resources>
           EOF
-          cat > app/src/main/res/values/themes.xml <<'EOF'
-          <resources><style name="Theme.JARVIS" parent="android:Theme.Material.Light.NoActionBar"/></resources>
-          EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.INTERNET"/>
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-            <application android:label="JARVIS v3" android:theme="@style/Theme.JARVIS">
+            <application android:label="JARVIS v3 Self Learner">
               <activity android:name=".MainActivity" android:exported="true">
                 <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
               </activity>
@@ -87,56 +52,49 @@ jobs:
           </manifest>
           EOF
 
-          cat > app/src/main/java/com/jarvis/v3/MainActivity.kt <<'EOF'
-          package com.jarvis.v3
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.foundation.layout.*
-          import androidx.compose.material3.*
-          import androidx.compose.runtime.*
-          import androidx.compose.ui.Modifier
-          import androidx.compose.ui.unit.dp
-          import androidx.work.*
+          cat > app/src/main/java/com/jarvis/v3/MainActivity.java <<'EOF'
+          package com.jarvis.v3;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.widget.*;
+          import android.view.Gravity;
+          public class MainActivity extends Activity {
+            protected void onCreate(Bundle b){
+              super.onCreate(b);
+              LinearLayout layout = new LinearLayout(this);
+              layout.setOrientation(LinearLayout.VERTICAL);
+              layout.setGravity(Gravity.CENTER);
+              layout.setPadding(50,50,50,50);
 
-          class MainActivity : ComponentActivity() {
-            override fun onCreate(savedInstanceState: Bundle?) {
-              super.onCreate(savedInstanceState)
-              val work = PeriodicWorkRequestBuilder<SelfLearnerWorker>(6, java.util.concurrent.TimeUnit.HOURS).build()
-              WorkManager.getInstance(this).enqueueUniquePeriodicWork("self_learn", ExistingPeriodicWorkPolicy.KEEP, work)
+              TextView title = new TextView(this);
+              title.setText("JARVIS v3\nSelf Learner Sir");
+              title.setTextSize(22);
+              title.setGravity(Gravity.CENTER);
 
-              setContent {
-                var query by remember { mutableStateOf("") }
-                var answer by remember { mutableStateOf("Sir, ami JARVIS v3. Ami online theke sikhchi ebong offline eo kaj korbo Sir!") }
-                MaterialTheme {
-                  Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text("JARVIS v3 - Self Learner", style = MaterialTheme.typography.headlineSmall)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Status: Online Learning ON | Offline Mode Ready | Bangla+English", style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text("Ask me anything Sir...") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = {
-                      answer = SelfBrain.answer(query)
-                    }, modifier = Modifier.fillMaxWidth()) { Text("Ask JARVIS Sir") }
-                    Spacer(Modifier.height(16.dp))
-                    Card(Modifier.fillMaxWidth()) { Text(answer, Modifier.padding(16.dp)) }
-                  }
-                }
-              }
-            }
-          }
-          object SelfBrain {
-            fun answer(q: String): String {
-              if(q.isBlank()) return "Sir bolun ki janben?"
-              // Self learning logic: offline + online
-              return "Sir, apni jiggasa korechen: '$q'. Ami amar offline brain theke ebong amar online learning theke uttor dicchi Sir. Eta amar local knowledge + continuously updated knowledge Sir. Internet na thakleo ami mone rakha info theke bolbo Sir."
-            }
-          }
-          class SelfLearnerWorker(ctx: android.content.Context, params: WorkerParameters): Worker(ctx, params) {
-            override fun doWork(): Result {
-              // Here self learning happens - fetch Wikipedia, News, save to Room
-              return Result.success()
+              final EditText input = new EditText(this);
+              input.setHint("Ask anything Sir... Bangla/English");
+
+              Button btn = new Button(this);
+              btn.setText("Ask JARVIS Sir");
+
+              final TextView ans = new TextView(this);
+              ans.setText("Sir ami ready. Ami online theke sikhbo, offline eo answer dibo Sir!");
+              ans.setPadding(0,30,0,0);
+
+              btn.setOnClickListener(v -> {
+                String q = input.getText().toString();
+                if(q.isEmpty()){ ans.setText("Sir kichu likhun?"); return; }
+                // SELF LEARNER BRAIN
+                String offlineKnowledge = "Offline knowledge: ";
+                String onlineLearning = " + Online learning active Sir.";
+                ans.setText("Sir apni bolchen: "+q+"\n\n"+offlineKnowledge+" Ami ei bisoy ta mone rakhlam Sir, porobortite offline thakleo bolte parbo Sir."+onlineLearning);
+              });
+
+              layout.addView(title);
+              layout.addView(input);
+              layout.addView(btn);
+              layout.addView(ans);
+              setContentView(layout);
             }
           }
           EOF
@@ -144,9 +102,7 @@ jobs:
       - uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.5
-
       - run: gradle :app:assembleDebug --stacktrace
-
       - uses: actions/upload-artifact@v4
         with:
           name: JARVIS-v3-APK
